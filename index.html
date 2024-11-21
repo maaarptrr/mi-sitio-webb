@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrige las operaciones</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #photo-container {
+            position: relative;
+            width: 80%;
+            height: 500px;
+            border: 1px solid #ccc;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .photo {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .photo:active {
+            cursor: grabbing;
+        }
+        .math-operations {
+            margin: 20px;
+            font-size: 24px;
+            text-align: center;
+        }
+        .operation {
+            margin: 10px;
+        }
+        #repeatInput {
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        #loadMultiple {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Como ya sabrás, los numeros romanos están formados por palitos. En esta actividad los reemplazarás por cerillas y representarás la operación con ellas. Cambia de orden de 1 cerilla para obtener la solución correcta. Este cambio se puede realizar entre todo tipo de letras y signos menos la "C" y "D". Cuando tengas la respuesta, dísela al docente para comprobarlo y poder pasar de prueba.</h1>
+    
+    <div id="photo-container"></div>
+
+    <div class="math-operations">
+        <div class="operation">DCCXVIII + DCCCI = MDXXl</div>
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*">
+
+    <!-- Contenedor para la opción de repetir las imágenes -->
+    <div class="input-container">
+        <label for="repeatInput">Número de repeticiones:</label>
+        <input type="number" id="repeatInput" value="1" min="1" max="100" style="width: 60px;">
+        <button id="loadMultiple">Cargar imágenes</button>
+    </div>
+
+    <script>
+        const photoContainer = document.getElementById('photo-container');
+        const fileInput = document.getElementById('fileInput');
+        const repeatInput = document.getElementById('repeatInput');
+        const loadMultipleButton = document.getElementById('loadMultiple');
+
+        fileInput.addEventListener('change', handleFileSelect);
+        loadMultipleButton.addEventListener('click', loadMultiplePhotos);
+
+        let selectedFile = null;
+
+        // Función para manejar la selección de archivo y permitir cargar varias fotos
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                selectedFile = files[0];  // Solo tomamos la primera foto seleccionada
+            }
+        }
+
+        // Función para cargar la foto seleccionada múltiples veces
+        function loadMultiplePhotos() {
+            if (!selectedFile) {
+                alert("Por favor, selecciona una foto primero.");
+                return;
+            }
+
+            const repeatCount = parseInt(repeatInput.value);
+            if (isNaN(repeatCount) || repeatCount < 1 || repeatCount > 100) {
+                alert("El número de repeticiones debe ser un número entre 1 y 100.");
+                return;
+            }
+
+            // Leer el archivo seleccionado y crear las imágenes
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Crear las imágenes con la misma fuente
+                for (let i = 0; i < repeatCount; i++) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.classList.add('photo');
+                    img.style.left = `${i * 120}px`;  // Desplazar cada imagen para no sobreponerse
+                    img.style.top = '0px';
+                    img.style.transform = 'rotate(0deg)';
+                    photoContainer.appendChild(img);
+                    makeDraggable(img);
+                    makeRotatable(img);  // Solo dejamos la rotación
+                }
+            };
+
+            reader.onerror = function() {
+                alert("Hubo un error al leer la imagen. Intenta nuevamente.");
+            };
+
+            reader.readAsDataURL(selectedFile);  // Leemos el archivo seleccionado
+        }
+
+        // Hacer que las fotos sean arrastrables
+        function makeDraggable(img) {
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            img.addEventListener('mousedown', function(event) {
+                isDragging = true;
+                offsetX = event.clientX - img.getBoundingClientRect().left;
+                offsetY = event.clientY - img.getBoundingClientRect().top;
+                img.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', function(event) {
+                if (isDragging) {
+                    img.style.left = event.clientX - offsetX + 'px';
+                    img.style.top = event.clientY - offsetY + 'px';
+                }
+            });
+
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+                img.style.cursor = 'grab';
+            });
+        }
+
+        // Hacer que las fotos sean rotables (sin cambiar el tamaño)
+        function makeRotatable(img) {
+            let isRotating = false;
+            let initialMouseX, initialMouseY, initialAngle;
+
+            img.addEventListener('mousedown', function(event) {
+                if (event.button === 2) { // Clic derecho para rotación
+                    isRotating = true;
+                    initialMouseX = event.clientX;
+                    initialMouseY = event.clientY;
+                    initialAngle = getRotationAngle(img);
+                    img.style.cursor = 'move';
+                    event.preventDefault();
+                }
+            });
+
+            document.addEventListener('mousemove', function(event) {
+                if (isRotating) {
+                    const dx = event.clientX - initialMouseX;
+                    const dy = event.clientY - initialMouseY;
+                    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+                    img.style.transform = `rotate(${initialAngle + angle}deg)`;
+                }
+            });
+
+            document.addEventListener('mouseup', function() {
+                isRotating = false;
+                img.style.cursor = 'grab';
+            });
+        }
+
+        // Función para obtener el ángulo de rotación
+        function getRotationAngle(element) {
+            const style = window.getComputedStyle(element);
+            const transform = style.transform;
+            if (transform === 'none') return 0;
+            const values = transform.split('(')[1].split(')')[0].split(',');
+            const angle = Math.atan2(values[1], values[0]) * (180 / Math.PI);
+            return angle;
+        }
+
+        // Deshabilitar el menú contextual (clic derecho)
+        window.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+    </script>
+
+</body>
+</html>
